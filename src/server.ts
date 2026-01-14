@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { getConfig } from './config';
 import { initializeDatabase } from './db';
 import { runMigrations } from './db/migrations';
+import { initializeLLM } from './services/llm';
 
 /**
  * Main server startup function
@@ -18,6 +19,10 @@ async function startServer(): Promise<void> {
     // Run migrations to ensure schema is up to date
     console.log('Running database migrations...');
     runMigrations();
+
+    // Initialize LLM service
+    console.log('Initializing LLM service...');
+    initializeLLM();
 
     // Create Express app
     const app = createApp();
