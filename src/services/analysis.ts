@@ -1,15 +1,11 @@
 import { getIssuesByRepo, IssueRecord } from '../db/issues';
 import { analyzeIssues } from './llm';
+import { getConfig } from '../config';
 
 /**
  * Analysis service layer
  * Handles issue loading, limit application, formatting, and LLM orchestration
  */
-
-// Constants for cost and context size control
-const MAX_ISSUES = 50;
-const MAX_BODY_CHARS = 1000;
-const MAX_TOTAL_CHARS = 30000;
 
 /**
  * Truncate a string to a maximum length
@@ -24,9 +20,9 @@ function truncate(str: string, maxLength: number): string {
 /**
  * Format a single issue for LLM consumption
  */
-function formatIssue(issue: IssueRecord): string {
+function formatIssue(issue: IssueRecord, maxBodyChars: number): string {
   const body = issue.body && issue.body.trim() 
-    ? truncate(issue.body, MAX_BODY_CHARS)
+    ? truncate(issue.body, maxBodyChars)
     : '(no body)';
 
   return `Issue #${issue.id}: ${issue.title}
@@ -47,16 +43,17 @@ function formatIssuesWithLimits(issues: IssueRecord[]): string {
     return '';
   }
 
-  const limitedIssues = issues.slice(0, MAX_ISSUES);
+  const config = getConfig();
+  const limitedIssues = issues.slice(0, config.maxIssues);
   const formattedParts: string[] = [];
   let totalChars = 0;
 
   for (const issue of limitedIssues) {
-    const formatted = formatIssue(issue);
+    const formatted = formatIssue(issue, config.maxBodyChars);
     const formattedLength = formatted.length;
 
     // Stop if adding this issue would exceed MAX_TOTAL_CHARS
-    if (totalChars + formattedLength > MAX_TOTAL_CHARS) {
+    if (totalChars + formattedLength > config.maxTotalChars) {
       break;
     }
 
