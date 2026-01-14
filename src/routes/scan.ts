@@ -1,56 +1,116 @@
 import { Router, Request, Response } from 'express';
-import { getDatabase } from '../db';
+import { scanRepository } from '../services/github';
+import { getIssuesByRepo, getIssueCount } from '../db/issues';
 
 const router = Router();
 
 /**
- * POST /scan
- * Initiates a scan of a GitHub repository
+ * GET /scan?repo=owner/repo-name
+ * Retrieves cached issues for a repository
  * 
- * Request body (placeholder structure):
+ * Query parameters:
+ *   repo - Repository in format "owner/repo-name"
+ * 
+ * Response:
  * {
- *   repositoryUrl: string
+ *   "repo": "owner/repo-name",
+ *   "count": number,
+ *   "issues": [...]
+ * }
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const { repo } = req.query;
+
+    if (!repo || typeof repo !== 'string' || repo.trim() === '') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'repo query parameter is required and must be a non-empty string in format "owner/repo-name"',
+      });
+    }
+
+    // Validate repo format (must contain at least one slash)
+    if (!repo.includes('/')) {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'repo must be in format "owner/repo-name"',
+      });
+    }
+
+    // Get cached issues from database
+    const issues = getIssuesByRepo(repo);
+    const count = getIssueCount(repo);
+
+    return res.status(200).json({
+      repo,
+      count,
+      issues,
+    });
+  } catch (error) {
+    console.error('Error in GET /scan endpoint:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /scan
+ * Fetches all open issues from a GitHub repository and stores them in the database
+ * 
+ * Request body:
+ * {
+ *   "repo": "owner/repo-name"
  * }
  * 
- * Response (placeholder):
+ * Response:
  * {
- *   scanId: number,
- *   status: string,
- *   message: string
+ *   "repo": "owner/repo-name",
+ *   "issues_fetched": number,
+ *   "cached_successfully": true
  * }
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    // TODO: Validate request body
-    const { repositoryUrl } = req.body;
+    // Validate request body
+    const { repo } = req.body;
 
-    if (!repositoryUrl || typeof repositoryUrl !== 'string') {
+    if (!repo || typeof repo !== 'string' || repo.trim() === '') {
       return res.status(400).json({
         error: 'Invalid request',
-        message: 'repositoryUrl is required and must be a string',
+        message: 'repo is required and must be a non-empty string in format "owner/repo-name"',
       });
     }
 
-    // TODO: Implement actual GitHub scanning logic
-    // For now, create a placeholder scan record
-    const db = getDatabase();
-    const stmt = db.prepare(`
-      INSERT INTO scans (repository_url, status)
-      VALUES (?, 'pending')
-    `);
+    // Validate repo format (must contain at least one slash)
+    if (!repo.includes('/')) {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'repo must be in format "owner/repo-name"',
+      });
+    }
 
-    const result = stmt.run(repositoryUrl);
-    const scanId = result.lastInsertRowid;
+    // Call service layer to scan repository
+    const result = await scanRepository(repo);
 
-    // Placeholder response
-    return res.status(202).json({
-      scanId,
-      status: 'pending',
-      message: 'Scan initiated (placeholder)',
-      repositoryUrl,
-    });
+    // Return success response
+    return res.status(200).json(result);
   } catch (error) {
     console.error('Error in /scan endpoint:', error);
+    
+    // Return appropriate error response
+    if (error instanceof Error) {
+      // GitHub API errors (repo not found, rate limit, etc.)
+      if (error.message.includes('Repository not found') || 
+          error.message.includes('GitHub API error')) {
+        return res.status(500).json({
+          error: 'Failed to fetch issues from GitHub',
+          message: error.message,
+        });
+      }
+    }
+
     return res.status(500).json({
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',

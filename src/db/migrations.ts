@@ -39,12 +39,28 @@ export function runMigrations(): void {
     )
   `);
 
+  // Create issues table
+  // Stores GitHub issues fetched from repositories
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS issues (
+      id INTEGER NOT NULL,
+      repo TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      html_url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (id, repo),
+      UNIQUE(id, repo)
+    )
+  `);
+
   // Create indexes for common queries
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_scans_status ON scans(status);
     CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at);
     CREATE INDEX IF NOT EXISTS idx_analyses_scan_id ON analyses(scan_id);
     CREATE INDEX IF NOT EXISTS idx_analyses_status ON analyses(status);
+    CREATE INDEX IF NOT EXISTS idx_issues_repo ON issues(repo);
   `);
 
   console.log('Database migrations completed');
