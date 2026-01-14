@@ -8,6 +8,29 @@ Backend service for scanning GitHub repositories and analyzing issues using LLM.
 - **Analyze**: Use LLM to analyze cached issues with custom prompts
 - **Configurable Limits**: Control scan size and LLM context window via environment variables
 
+## Storage Choice
+
+This project uses SQLite for persistent storage of cached GitHub issues. Here's why:
+
+| Attribute                     | In-Memory Storage | JSON File Storage | SQLite (chosen)           |
+| ----------------------------- | ----------------- | ----------------- | ------------------------- |
+| Persistence across restarts   | ❌ No              | ✅ Yes             | ✅ Yes                     |
+| Setup complexity              | ✅ Very low        | ✅ Low             | ◑ Moderate                |
+| Data integrity & atomicity    | ❌ None            | ❌ Manual          | ✅ Built-in (ACID)         |
+| Concurrency safety            | ❌ No              | ❌ No              | ✅ Yes                     |
+| Querying & filtering          | ❌ Very limited    | ❌ Manual          | ✅ Native SQL              |
+| Idempotent updates            | ❌ Hard            | ◑ Possible        | ✅ Easy (UPSERT)           |
+| Scalability (issue count)     | ❌ Poor            | ◑ Degrades        | ✅ Good                    |
+| Operational overhead          | ✅ None            | ✅ Minimal         | ✅ Minimal (single file)   |
+| Suitability for caching       | ❌ Weak            | ◑ Acceptable      | ✅ Strong                  |
+| Interview / production signal | ❌ Toy             | ◑ Script-level    | ✅ Serious but lightweight |
+
+**Key Benefits:**
+
+* **Durable by default**: Cached GitHub issues persist across server restarts, making the `/analyze` endpoint reliable and demo-safe.
+
+* **Correctness with minimal complexity**: SQLite provides transactions, constraints, and atomic operations out of the box, ensuring data integrity without manual synchronization logic.
+
 ## Prerequisites
 
 - Node.js 18+ (for local development)
@@ -122,35 +145,3 @@ Set custom API URL:
 ```bash
 API_BASE_URL=http://localhost:8080 python cmd/cli.py scan facebook/react
 ```
-
-## Development
-
-**Run tests:**
-```bash
-npm test
-```
-
-**Type check:**
-```bash
-npm run type-check
-```
-
-**Rebuild Docker image:**
-```bash
-docker-compose build
-```
-
-## Project Structure
-
-```
-├── src/              # TypeScript source code
-├── tests/            # Test suite
-├── cmd/              # Python CLI tool
-├── data/             # SQLite database (created at runtime)
-├── Dockerfile        # Container image definition
-└── docker-compose.yml # Docker Compose configuration
-```
-
-## License
-
-ISC
