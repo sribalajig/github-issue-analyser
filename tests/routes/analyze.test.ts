@@ -156,12 +156,12 @@ describe('POST /analyze', () => {
 
   describe('Enforces Issue Limit', () => {
     it('should limit issues to MAX_ISSUES when more issues exist', async () => {
-      // Set MAX_ISSUES to a known value for this test
-      const originalMaxIssues = process.env.MAX_ISSUES;
-      process.env.MAX_ISSUES = '50';
+      // Set MAX_ANALYSIS_ISSUES to a known value for this test
+      const originalMaxAnalysisIssues = process.env.MAX_ANALYSIS_ISSUES;
+      process.env.MAX_ANALYSIS_ISSUES = '50';
 
       try {
-        // Seed 60 issues (more than MAX_ISSUES=50)
+        // Seed 60 issues (more than MAX_ANALYSIS_ISSUES=50)
         seedTestIssues(testRepo, 60);
 
         // Mock LLM service and capture call arguments
@@ -194,10 +194,10 @@ describe('POST /analyze', () => {
         expect(issueCount).toBeLessThan(60);
       } finally {
         // Restore original value
-        if (originalMaxIssues !== undefined) {
-          process.env.MAX_ISSUES = originalMaxIssues;
+        if (originalMaxAnalysisIssues !== undefined) {
+          process.env.MAX_ANALYSIS_ISSUES = originalMaxAnalysisIssues;
         } else {
-          delete process.env.MAX_ISSUES;
+          delete process.env.MAX_ANALYSIS_ISSUES;
         }
       }
     });

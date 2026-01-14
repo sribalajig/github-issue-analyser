@@ -12,9 +12,10 @@ export interface Config {
   nodeEnv: string;
   dbPath: string;
   openaiApiKey: string;
-  maxIssues: number;
+  maxAnalysisIssues: number;
   maxBodyChars: number;
   maxTotalChars: number;
+  maxScanIssues?: number;
   // Add more config values as needed (e.g., GitHub token)
 }
 
@@ -27,16 +28,19 @@ export function getConfig(): Config {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const dbPath = process.env.DB_PATH || './data/scanner.db';
   const openaiApiKey = process.env.OPENAI_API_KEY || '';
-  const maxIssues = parseInt(process.env.MAX_ISSUES || '50', 10);
+  const maxAnalysisIssues = parseInt(process.env.MAX_ANALYSIS_ISSUES || '50', 10);
   const maxBodyChars = parseInt(process.env.MAX_BODY_CHARS || '1000', 10);
   const maxTotalChars = parseInt(process.env.MAX_TOTAL_CHARS || '30000', 10);
+  const maxScanIssues = process.env.MAX_SCAN_ISSUES
+    ? parseInt(process.env.MAX_SCAN_ISSUES, 10)
+    : undefined;
 
   if (isNaN(port)) {
     throw new Error('PORT must be a valid number');
   }
 
-  if (isNaN(maxIssues) || maxIssues < 1) {
-    throw new Error('MAX_ISSUES must be a positive number');
+  if (isNaN(maxAnalysisIssues) || maxAnalysisIssues < 1) {
+    throw new Error('MAX_ANALYSIS_ISSUES must be a positive number');
   }
 
   if (isNaN(maxBodyChars) || maxBodyChars < 1) {
@@ -45,6 +49,10 @@ export function getConfig(): Config {
 
   if (isNaN(maxTotalChars) || maxTotalChars < 1) {
     throw new Error('MAX_TOTAL_CHARS must be a positive number');
+  }
+
+  if (maxScanIssues !== undefined && (isNaN(maxScanIssues) || maxScanIssues < 1)) {
+    throw new Error('MAX_SCAN_ISSUES must be a positive number if provided');
   }
 
   if (!openaiApiKey && nodeEnv === 'production') {
@@ -56,8 +64,9 @@ export function getConfig(): Config {
     nodeEnv,
     dbPath,
     openaiApiKey,
-    maxIssues,
+    maxAnalysisIssues,
     maxBodyChars,
     maxTotalChars,
+    maxScanIssues,
   };
 }

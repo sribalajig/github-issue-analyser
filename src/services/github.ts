@@ -29,9 +29,10 @@ export interface GitHubIssue {
  * Handles pagination and filters out pull requests
  * 
  * @param repo - Repository in format "owner/repo-name"
+ * @param maxScanIssues - Optional limit on number of issues to fetch (most recent)
  * @returns Array of open issues (excluding pull requests)
  */
-export async function fetchOpenIssues(repo: string): Promise<GitHubIssue[]> {
+export async function fetchOpenIssues(repo: string, maxScanIssues?: number): Promise<GitHubIssue[]> {
   // Validate repo format
   if (!repo || typeof repo !== 'string' || !repo.includes('/')) {
     throw new Error('Invalid repo format. Expected "owner/repo-name"');
@@ -76,6 +77,14 @@ export async function fetchOpenIssues(repo: string): Promise<GitHubIssue[]> {
       const actualIssues = issues.filter((issue) => !issue.pull_request);
       allIssues.push(...actualIssues);
 
+      // Check if we've reached the scan limit (if configured)
+      // This cap prevents excessive API calls and storage for large repositories
+      if (maxScanIssues !== undefined && allIssues.length >= maxScanIssues) {
+        // Take only the first maxScanIssues (most recent, since API returns DESC order)
+        allIssues.splice(maxScanIssues);
+        break; // Stop pagination early
+      }
+
       // If we got fewer than perPage results, we've reached the last page
       if (issues.length < perPage) {
         break;
@@ -97,15 +106,16 @@ export async function fetchOpenIssues(repo: string): Promise<GitHubIssue[]> {
  * Scan a repository: fetch open issues from GitHub and store them in the database
  * 
  * @param repo - Repository in format "owner/repo-name"
+ * @param maxScanIssues - Optional limit on number of issues to fetch (most recent)
  * @returns Scan result with number of issues fetched
  */
-export async function scanRepository(repo: string): Promise<{
+export async function scanRepository(repo: string, maxScanIssues?: number): Promise<{
   repo: string;
   issues_fetched: number;
   cached_successfully: boolean;
 }> {
-  // Fetch open issues from GitHub
-  const issues = await fetchOpenIssues(repo);
+  // Fetch open issues from GitHub (with optional limit)
+  const issues = await fetchOpenIssues(repo, maxScanIssues);
 
   // Store issues in database
   upsertIssues(repo, issues);

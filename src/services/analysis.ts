@@ -44,7 +44,7 @@ function formatIssuesWithLimits(issues: IssueRecord[]): string {
   }
 
   const config = getConfig();
-  const limitedIssues = issues.slice(0, config.maxIssues);
+  const limitedIssues = issues.slice(0, config.maxAnalysisIssues);
   const formattedParts: string[] = [];
   let totalChars = 0;
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { scanRepository } from '../services/github';
 import { getIssuesByRepo, getIssueCount } from '../db/issues';
+import { getConfig } from '../config';
 
 const router = Router();
 
@@ -91,8 +92,11 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    // Get maxScanIssues from config (optional limit on issues to fetch)
+    const config = getConfig();
+    
     // Call service layer to scan repository
-    const result = await scanRepository(repo);
+    const result = await scanRepository(repo, config.maxScanIssues);
 
     // Return success response
     return res.status(200).json(result);

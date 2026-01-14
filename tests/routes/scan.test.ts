@@ -85,7 +85,7 @@ describe('POST /scan', () => {
       });
 
       // Verify service was called with correct repo
-      expect(mockScanRepository).toHaveBeenCalledWith(testRepo);
+      expect(mockScanRepository).toHaveBeenCalledWith(testRepo, undefined);
       expect(mockScanRepository).toHaveBeenCalledTimes(1);
     });
   });
@@ -195,7 +195,7 @@ describe('POST /scan', () => {
 
       expect(response.body).toHaveProperty('error', 'Repository not found');
       expect(response.body.message).toBe(errorMessage);
-      expect(mockScanRepository).toHaveBeenCalledWith(testRepo);
+      expect(mockScanRepository).toHaveBeenCalledWith(testRepo, undefined);
     });
 
     it('should return 500 for other GitHub API errors', async () => {
