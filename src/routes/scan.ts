@@ -101,9 +101,16 @@ router.post('/', async (req: Request, res: Response) => {
     
     // Return appropriate error response
     if (error instanceof Error) {
-      // GitHub API errors (repo not found, rate limit, etc.)
-      if (error.message.includes('Repository not found') || 
-          error.message.includes('GitHub API error')) {
+      // Repository not found - return 404
+      if (error.message.includes('Repository not found')) {
+        return res.status(404).json({
+          error: 'Repository not found',
+          message: error.message,
+        });
+      }
+      
+      // Other GitHub API errors (rate limit, etc.) - return 500
+      if (error.message.includes('GitHub API error')) {
         return res.status(500).json({
           error: 'Failed to fetch issues from GitHub',
           message: error.message,

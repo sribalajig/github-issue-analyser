@@ -183,9 +183,24 @@ describe('POST /scan', () => {
   });
 
   describe('GitHub API Failure', () => {
-    it('should return 500 when GitHub API fails', async () => {
-      // Mock scanRepository to throw an error
+    it('should return 404 when repository is not found', async () => {
+      // Mock scanRepository to throw repository not found error
       const errorMessage = 'Repository not found: test-owner/test-repo';
+      mockScanRepository.mockRejectedValue(new Error(errorMessage));
+
+      const response = await request(app)
+        .post('/scan')
+        .send({ repo: testRepo })
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error', 'Repository not found');
+      expect(response.body.message).toBe(errorMessage);
+      expect(mockScanRepository).toHaveBeenCalledWith(testRepo);
+    });
+
+    it('should return 500 for other GitHub API errors', async () => {
+      // Mock scanRepository to throw a generic GitHub API error
+      const errorMessage = 'GitHub API error: 403 Forbidden';
       mockScanRepository.mockRejectedValue(new Error(errorMessage));
 
       const response = await request(app)
@@ -195,7 +210,6 @@ describe('POST /scan', () => {
 
       expect(response.body).toHaveProperty('error', 'Failed to fetch issues from GitHub');
       expect(response.body.message).toBe(errorMessage);
-      expect(mockScanRepository).toHaveBeenCalledWith(testRepo);
     });
 
     it('should return 500 for generic GitHub API errors', async () => {
