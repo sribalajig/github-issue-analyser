@@ -46,6 +46,30 @@ export function getDatabase(): Database.Database {
 }
 
 /**
+ * Reset database by clearing all tables
+ * Useful for test cleanup
+ * WARNING: This deletes all data from all tables
+ */
+export function resetDatabase(): void {
+  if (!db) {
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
+  }
+
+  // Disable foreign keys temporarily for faster deletion
+  db.pragma('foreign_keys = OFF');
+
+  // Delete all data from tables (in reverse order of dependencies)
+  db.exec(`
+    DELETE FROM analyses;
+    DELETE FROM scans;
+    DELETE FROM issues;
+  `);
+
+  // Re-enable foreign keys
+  db.pragma('foreign_keys = ON');
+}
+
+/**
  * Close database connection
  * Should be called on application shutdown
  */

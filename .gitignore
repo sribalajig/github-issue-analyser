@@ -13,6 +13,9 @@ dist/
 *.db
 *.db-shm
 *.db-wal
+test.db
+test.db-shm
+test.db-wal
 
 # IDE
 .vscode/
