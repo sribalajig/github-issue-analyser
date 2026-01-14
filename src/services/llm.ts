@@ -61,15 +61,37 @@ export async function analyzeIssues(
   const promptTemplate = PromptTemplate.fromTemplate(`
 You are analyzing GitHub issues for repository: {repo}
 
-User's request: {userPrompt}
+User's request:
+{userPrompt}
 
-Note: This analysis is based on a capped subset of the most recent issues. 
-Not all issues may be included due to context size limits.
+Important context:
+- This analysis is based on a capped subset of the most recent issues.
+- Not all issues may be included due to context size limits.
+- You MUST follow the user's request above. If the request asks for a specific angle (e.g., bugs vs features, security, performance, prioritization, release planning), adapt the analysis accordingly.
 
-Issues:
+Issues (title/body/metadata; bodies may be truncated):
 {formattedIssues}
 
-Please provide your analysis:
+---
+
+Respond in **Markdown** using the structure below. Keep it concise but useful.
+
+## Overview
+2–3 sentence summary that directly addresses the user's request.
+
+## Findings (aligned to the user's request)
+Provide the most relevant themes, patterns, or clusters *based on what the user asked for*.
+Use a numbered list. For each item include:
+- **Summary**
+- **Evidence**: cite a few issue titles or IDs from the provided list (no need to be exhaustive)
+- **Why it matters**
+
+## Recommended Priorities
+Give a short ordered list of what to do next, with 1–2 sentences of rationale each.
+If the user requested prioritization criteria (impact, frequency, severity), use those criteria.
+
+## Caveats
+Briefly state limitations due to the capped subset and any missing context.
 `);
 
   try {
