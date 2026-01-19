@@ -5,7 +5,7 @@ const router = Router();
 
 /**
  * POST /analyze
- * Analyzes cached GitHub issues using LLM
+ * Analyzes cached GitHub issues using LLM with map-reduce pattern
  * 
  * Request body:
  * {
@@ -15,7 +15,16 @@ const router = Router();
  * 
  * Response:
  * {
- *   "analysis": "LLM-generated text"
+ *   "analysis": "LLM-generated text (includes token usage and timing in markdown)",
+ *   "tokens": {
+ *     "total": number,
+ *     "input": number,
+ *     "output": number,
+ *     "chunks": number,
+ *     "synthesis": number,
+ *     "cost": number,
+ *     "timeMs": number
+ *   }
  * }
  */
 router.post('/', async (req: Request, res: Response) => {
@@ -37,12 +46,32 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Call analysis service
-    const analysis = await analyzeRepository(repo.trim(), prompt.trim());
+    // Track start time
+    const startTime = Date.now();
 
-    // Return success response
+    // Call analysis service
+    const result = await analyzeRepository(repo.trim(), prompt.trim());
+
+    // Calculate duration
+    const durationMs = Date.now() - startTime;
+    const durationSeconds = (durationMs / 1000).toFixed(2);
+
+    // Add timing to analysis markdown
+    const analysisWithTiming = result.analysis.replace(
+      /## Token Usage\n\n/,
+      `## Token Usage\n\n- **Time taken**: ${durationSeconds}s (${durationMs}ms)\n`
+    );
+
+    // Add timing to tokens
+    const tokensWithTiming = {
+      ...result.tokens,
+      timeMs: durationMs,
+    };
+
+    // Return success response with analysis, token usage, and timing
     return res.status(200).json({
-      analysis,
+      analysis: analysisWithTiming,
+      tokens: tokensWithTiming,
     });
   } catch (error) {
     console.error('Error in /analyze endpoint:', error);
