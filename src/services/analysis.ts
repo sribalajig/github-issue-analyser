@@ -124,16 +124,20 @@ async function chunkIssuesByTokens(issues: IssueRecord[]): Promise<string[]> {
 
 /**
  * Analyze a repository's issues using LLM with map-reduce pattern
+ * Tracks timing and includes it in the result
  * 
  * @param repo - Repository identifier (owner/repo-name)
  * @param prompt - User's natural language prompt
- * @returns Analysis result with text and token usage
+ * @returns Analysis result with text, token usage, and timing
  * @throws Error if no issues found or LLM call fails
  */
 export async function analyzeRepository(
   repo: string,
   prompt: string
 ): Promise<AnalysisResult> {
+  // Track start time
+  const startTime = Date.now();
+
   // Load issues from database
   const issues = getIssuesByRepo(repo);
 
@@ -151,5 +155,24 @@ export async function analyzeRepository(
   // Call LLM service with map-reduce pattern
   const result = await analyzeIssues(repo, prompt, issueChunks);
 
-  return result;
+  // Calculate duration
+  const durationMs = Date.now() - startTime;
+  const durationSeconds = (durationMs / 1000).toFixed(2);
+
+  // Add timing to analysis markdown
+  const analysisWithTiming = result.analysis.replace(
+    /## Token Usage\n\n/,
+    `## Token Usage\n\n- **Time taken**: ${durationSeconds}s (${durationMs}ms)\n`
+  );
+
+  // Add timing to tokens
+  const tokensWithTiming = {
+    ...result.tokens,
+    timeMs: durationMs,
+  };
+
+  return {
+    analysis: analysisWithTiming,
+    tokens: tokensWithTiming,
+  };
 }

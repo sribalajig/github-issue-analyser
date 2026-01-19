@@ -46,32 +46,13 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Track start time
-    const startTime = Date.now();
-
-    // Call analysis service
+    // Call analysis service (timing handled in service layer)
     const result = await analyzeRepository(repo.trim(), prompt.trim());
 
-    // Calculate duration
-    const durationMs = Date.now() - startTime;
-    const durationSeconds = (durationMs / 1000).toFixed(2);
-
-    // Add timing to analysis markdown
-    const analysisWithTiming = result.analysis.replace(
-      /## Token Usage\n\n/,
-      `## Token Usage\n\n- **Time taken**: ${durationSeconds}s (${durationMs}ms)\n`
-    );
-
-    // Add timing to tokens
-    const tokensWithTiming = {
-      ...result.tokens,
-      timeMs: durationMs,
-    };
-
-    // Return success response with analysis, token usage, and timing
+    // Return success response with analysis and token usage
     return res.status(200).json({
-      analysis: analysisWithTiming,
-      tokens: tokensWithTiming,
+      analysis: result.analysis,
+      tokens: result.tokens,
     });
   } catch (error) {
     console.error('Error in /analyze endpoint:', error);
